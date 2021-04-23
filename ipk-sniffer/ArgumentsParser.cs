@@ -19,6 +19,10 @@ namespace ipk_sniffer
         public bool useICMP = false;
         public int numberOfPackets = -1;
 
+        /// <summary>
+        /// Parse arguments
+        /// </summary>
+        /// <param name="args"></param>
         public ArgumentsParser(string[] args)
         {
             Parse(args);
@@ -26,15 +30,23 @@ namespace ipk_sniffer
 
         private void Parse(string[] args)
         {
+            // No arguments => list interfaces
             if (args.Length == 0)
-                Tools.ExitWithMessage("Usage: ./ipk-sniffer [-i rozhraní | --interface rozhraní] {-p port} {[--tcp|-t] [--udp|-u] [--arp] [--icmp] } {-n num}", 0);
-            else if (args.Length == 1)
+            {
+                doListInterfaces = true;
+                return;
+            }
+
+            if (args.Length == 1)
             {
                 if (args[0] == "-i" || args[0] == "--interface")
                 {
                     doListInterfaces = true;
                     return;
                 }
+                
+                if (args[0] == "-h" || args[0] == "--help")
+                    Tools.ExitWithMessage("Usage: ./ipk-sniffer [-i rozhraní | --interface rozhraní] {-p port} {[--tcp|-t] [--udp|-u] [--arp] [--icmp] } {-n num}", 0);
 
                 Tools.ExitWithMessage("Invalid arguments.", 1);
             }
