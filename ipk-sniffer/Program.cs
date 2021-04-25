@@ -29,20 +29,20 @@ namespace ipk_sniffer
                 Tools.ExitWithMessage($"Interface '{arguments.interf}' is not available.", 1);
 
             var device = devices.First(d => d.Name == arguments.interf);
-            device.Open(DeviceMode.Normal, 1000);
+            device.Open();
             device.OnPacketArrival += Device_OnPacketArrival;
             
             // Create filter string
             string filter = string.Empty;
             if (arguments.useTCP)
             {
-                filter += "(ip and tcp)";
+                filter += "((ip or ip6) and tcp)";
             }
             if (arguments.useUDP)
             {
                 if (filter != string.Empty)
                     filter += " or ";
-                filter += "(ip and udp)";
+                filter += "((ip or ip6) and udp)";
             }
             if (arguments.useARP)
             {
@@ -54,7 +54,7 @@ namespace ipk_sniffer
             {
                 if (filter != string.Empty)
                     filter += " or ";
-                filter += "icmp";
+                filter += "(icmp or icmp6)";
             }
 
             device.Filter = filter;
