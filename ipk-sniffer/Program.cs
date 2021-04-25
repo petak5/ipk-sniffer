@@ -7,9 +7,11 @@ namespace ipk_sniffer
 {
     class Program
     {
+        private static ArgumentsParser arguments;
+        private static int packetsCount = 0;
         static int Main(string[] args)
         {
-            var arguments = new ArgumentsParser(args);
+            arguments = new ArgumentsParser(args);
 
             var devices = CaptureDeviceList.Instance;
 
@@ -51,6 +53,10 @@ namespace ipk_sniffer
         
         private static void Device_OnPacketArrival(object sender, CaptureEventArgs e)
         {
+            packetsCount++;
+            if (packetsCount > arguments.numberOfPackets)
+                Environment.Exit(0);
+
             var time = Tools.DateTimeToString(e.Packet.Timeval.Date.ToLocalTime());
             var len = e.Packet.Data.Length;
 
