@@ -7,7 +7,7 @@ namespace ipk_sniffer
     public class ArgumentsParser
     {
         // Show all protocols either when none was explicitly set to enabled or when all protocols were set to enabled
-        public bool showAllProtocols => useTCP == useUDP == useARP == useICMP;
+        public bool showAllProtocols => useTCP && useUDP && useARP && useICMP;
         
         public bool doListInterfaces = false;
         
@@ -152,6 +152,14 @@ namespace ipk_sniffer
             // Set to default value if not set
             if (numberOfPackets == -1)
                 numberOfPackets = 1;
+            
+            if (!useTCP && !useUDP && !useARP && !useICMP)
+            {
+                useTCP = true;
+                useUDP = true;
+                useARP = true;
+                useICMP = true;
+            }
         }
     }
 }

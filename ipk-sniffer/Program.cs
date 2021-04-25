@@ -31,22 +31,34 @@ namespace ipk_sniffer
             var device = devices.First(d => d.Name == arguments.interf);
             device.Open(DeviceMode.Normal, 1000);
             device.OnPacketArrival += Device_OnPacketArrival;
-            //tcpdump filter to capture only TCP/IP packets
-            string filter = "ip and tcp";
+            
+            // Create filter string
+            string filter = string.Empty;
+            if (arguments.useTCP)
+            {
+                filter += "(ip and tcp)";
+            }
+            if (arguments.useUDP)
+            {
+                if (filter != string.Empty)
+                    filter += " or ";
+                filter += "(ip and udp)";
+            }
+            if (arguments.useARP)
+            {
+                if (filter != string.Empty)
+                    filter += " or ";
+                filter += "arp";
+            }
+            if (arguments.useICMP)
+            {
+                if (filter != string.Empty)
+                    filter += " or ";
+                filter += "icmp";
+            }
+
             device.Filter = filter;
             device.StartCapture();
-
-            Console.WriteLine($"Interface: {arguments.interf}");
-            Console.WriteLine($"Do list interfaces: {arguments.doListInterfaces}");
-            Console.WriteLine($"Port: {arguments.port}");
-            
-            Console.WriteLine($"Show all protocols: {arguments.showAllProtocols}");
-            Console.WriteLine($"    TCP:  {arguments.useTCP}");
-            Console.WriteLine($"    UDP:  {arguments.useUDP}");
-            Console.WriteLine($"    ARP:  {arguments.useARP}");
-            Console.WriteLine($"    ICMP: {arguments.useICMP}");
-            
-            Console.WriteLine($"Number of packets: {arguments.numberOfPackets}");
 
             return 0;
         }
@@ -58,6 +70,7 @@ namespace ipk_sniffer
 
             var packet = PacketDotNet.Packet.ParsePacket(e.Packet.LinkLayerType, e.Packet.Data);
 
+            // TCP
             var tcpPacket = packet.Extract<PacketDotNet.TcpPacket>();
             if (tcpPacket != null)
             {
@@ -77,10 +90,75 @@ namespace ipk_sniffer
                 }
 
                 Console.WriteLine($"{time} {srcIp} : {srcPort} > {dstIp} : {dstPort}, length {len} bytes");
-                
+
+                PrettyPrint(payload);
+            }
+
+            // UDP
+            var udpPacket = packet.Extract<PacketDotNet.UdpPacket>();
+            if (udpPacket != null)
+            {
+                var ipPacket = (PacketDotNet.IPPacket)udpPacket.ParentPacket;
+                System.Net.IPAddress srcIp = ipPacket.SourceAddress;
+                System.Net.IPAddress dstIp = ipPacket.DestinationAddress;
+                int srcPort = udpPacket.SourcePort;
+                int dstPort = udpPacket.DestinationPort;
+                byte[] payload = e.Packet.Data;
+
+                // If port was specified
+                if (arguments.port != -1)
+                {
+                    // If source and destination port doesn't match the specified port, ignore this packet
+                    if (srcPort != arguments.port && dstPort != arguments.port)
+                        return;
+                }
+
+                Console.WriteLine($"{time} {srcIp} : {srcPort} > {dstIp} : {dstPort}, length {len} bytes");
+
                 PrettyPrint(payload);
             }
             
+            // ARP
+            var icmpPacket = packet.Extract<PacketDotNet.ArpPacket>();
+            if (icmpPacket != null)
+            {
+                var ipPacket = (PacketDotNet.IPPacket)icmpPacket.ParentPacket;
+                System.Net.IPAddress srcIp = ipPacket.SourceAddress;
+                System.Net.IPAddress dstIp = ipPacket.DestinationAddress;
+                byte[] payload = e.Packet.Data;
+
+                Console.WriteLine($"{time} {srcIp} > {dstIp}, length {len} bytes");
+
+                PrettyPrint(payload);
+            }
+            
+            var icmpv4Packet = packet.Extract<PacketDotNet.IcmpV4Packet>();
+            var icmpv6Packet = packet.Extract<PacketDotNet.IcmpV4Packet>();
+            // ICMPv4
+            if (icmpv4Packet != null)
+            {
+                var ipPacket = (PacketDotNet.IPPacket)icmpv4Packet.ParentPacket;
+                System.Net.IPAddress srcIp = ipPacket.SourceAddress;
+                System.Net.IPAddress dstIp = ipPacket.DestinationAddress;
+                byte[] payload = e.Packet.Data;
+
+                Console.WriteLine($"{time} {srcIp} > {dstIp}, length {len} bytes");
+
+                PrettyPrint(payload);
+            }
+            // ICMPv6
+            else if (icmpv6Packet != null)
+            {
+                var ipPacket = (PacketDotNet.IPPacket)icmpv6Packet.ParentPacket;
+                System.Net.IPAddress srcIp = ipPacket.SourceAddress;
+                System.Net.IPAddress dstIp = ipPacket.DestinationAddress;
+                byte[] payload = e.Packet.Data;
+
+                Console.WriteLine($"{time} {srcIp} > {dstIp}, length {len} bytes");
+
+                PrettyPrint(payload);
+            }
+
             packetsCount++;
             // If required amount of packets was captured, exit the program
             if (packetsCount >= arguments.numberOfPackets)
@@ -99,8 +177,9 @@ namespace ipk_sniffer
             {
                 var c = Convert.ToChar(data[i]);
                 
-                sbHexa.Append($"{(int)c:X2} ");
+                sbHexa.Append($"{(int)c:x2} ");
                 
+                // ASCII characters with value from 32 to 126 are printable
                 if (c >= 32 && c <= 126)
                 {
                     sbAscii.Append(c);
@@ -113,14 +192,14 @@ namespace ipk_sniffer
                 // Print out every 16 iterations (at the end of 16. iteration when all the necessary data is collected)
                 if (i % 16 == 15)
                 {
-                    Console.WriteLine($"0x{i + 1:X4}:  {sbHexa.ToString()} {sbAscii.ToString()}");
+                    Console.WriteLine($"0x{i - 16 + 1:x4}:  {sbHexa.ToString()} {sbAscii.ToString()}");
                     sbHexa.Clear();
                     sbAscii.Clear();
                 }
                 // Last iteration, print what is left
                 else if (i + 1 == data.Length)
                 {
-                    Console.WriteLine($"0x{i + 16 - i % 16:X4}:  {sbHexa.ToString()} {sbAscii.ToString()}");
+                    Console.WriteLine($"0x{i - i % 16:x4}:  {sbHexa.ToString()} {sbAscii.ToString()}");
                 }
             }
         }
