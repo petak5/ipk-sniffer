@@ -1,0 +1,21 @@
+# IPK sniffer
+
+Autor: Peter Urgoš (xurgos00)
+Dátum: 25. 4. 2021
+
+IPK sniffer je jednoduchý CLI program pre snifovanie sieťových paketov napísaný v C# .NET Core 3 s pomocou knižnice SharpPcap.
+
+Súbory:
+- `Program.cs` je vstupný bod programu s hlavnou logikou (zachytávanie, filtrovanie a vypisovanie paketov)
+- `ArgumentsParser.cs` je trieda pre parsovanie argumentov z príkazového riadku
+- `Tools` obsahuje všeobecne užitočné funkcie
+
+Pre spustenie je pripravený súbor Makefile v koreňovom adresári. Na Linuxe stačí zavolať príkaz `make` z adresára kde sa nachádza Makefile a program sa zostaví do jediného spustiteľného súboru ktorý sa skopíruje do aktuálneho adresára. Spustiteľný súbor sa volá `program`.
+Alternatívna možnosť spustenia je zavloať `dotnet run` z podadresára "ipk-sniffer".
+
+Obmedzenie: nepodarilo sa mi spojazdniť zachytávanie ARP paketov, knižnica ktorú používam nechce povoliť filter "arp".
+
+Zdroje:
+- https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/types/how-to-convert-a-string-to-a-number
+- https://sebnilsson.com/blog/c-datetime-to-rfc3339-iso-8601/
+- https://github.com/chmorgan/sharppcap a https://github.com/chmorgan/sharppcap/tree/master/Examples
