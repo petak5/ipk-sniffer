@@ -53,10 +53,6 @@ namespace ipk_sniffer
         
         private static void Device_OnPacketArrival(object sender, CaptureEventArgs e)
         {
-            packetsCount++;
-            if (packetsCount > arguments.numberOfPackets)
-                Environment.Exit(0);
-
             var time = Tools.DateTimeToString(e.Packet.Timeval.Date.ToLocalTime());
             var len = e.Packet.Data.Length;
 
@@ -72,10 +68,23 @@ namespace ipk_sniffer
                 int dstPort = tcpPacket.DestinationPort;
                 byte[] payload = e.Packet.Data;
 
+                // If port was specified
+                if (arguments.port != -1)
+                {
+                    // If source and destination port doesn't match the specified port, ignore this packet
+                    if (srcPort != arguments.port && dstPort != arguments.port)
+                        return;
+                }
+
                 Console.WriteLine($"{time} {srcIp} : {srcPort} > {dstIp} : {dstPort}, length {len} bytes");
                 
                 PrettyPrint(payload);
             }
+            
+            packetsCount++;
+            // If required amount of packets was captured, exit the program
+            if (packetsCount >= arguments.numberOfPackets)
+                Environment.Exit(0);
         }
 
         /// <summary>
@@ -108,9 +117,8 @@ namespace ipk_sniffer
                     sbHexa.Clear();
                     sbAscii.Clear();
                 }
-
                 // Last iteration, print what is left
-                if (i + 1 == data.Length)
+                else if (i + 1 == data.Length)
                 {
                     Console.WriteLine($"0x{i + 16 - i % 16:X4}:  {sbHexa.ToString()} {sbAscii.ToString()}");
                 }
