@@ -20,9 +20,9 @@ namespace ipk_sniffer
         public int numberOfPackets = -1;
 
         /// <summary>
-        /// Parse arguments
+        /// Create object and populate its attributes with parsed data
         /// </summary>
-        /// <param name="args"></param>
+        /// <param name="args">Arguments to parse</param>
         public ArgumentsParser(string[] args)
         {
             Parse(args);
